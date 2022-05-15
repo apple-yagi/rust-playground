@@ -1,13 +1,17 @@
 use flate2::write::GzEncoder;
 use flate2::Compression;
+use std::env::args;
 use std::fs;
 use std::io::prelude::*;
 
 fn main() {
-    let filename = "Cargo.toml";
+    if args().len() != 2 {
+        eprintln!("Usage: ./compress_file `source`");
+        return;
+    }
 
     // Open file
-    let mut file = fs::File::open(filename).expect("Failed to open file");
+    let mut file = fs::File::open(args().nth(1).unwrap()).expect("Failed to open file");
 
     // Print file size
     println!("{}", file.metadata().unwrap().len());
