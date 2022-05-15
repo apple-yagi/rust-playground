@@ -27,6 +27,10 @@ fn main() {
     }
 
     for p in paths.iter() {
+        if Path::new(p).is_dir() {
+            continue;
+        }
+
         // Open file
         let mut file = File::open(p).expect("Failed to open file");
 
