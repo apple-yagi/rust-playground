@@ -1,8 +1,12 @@
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use std::env::args;
-use std::fs;
+use std::fs::File;
 use std::io::prelude::*;
+use std::path::Path;
+use std::path::PathBuf;
+
+mod dir;
 
 fn main() {
     if args().len() != 2 {
@@ -10,23 +14,37 @@ fn main() {
         return;
     }
 
-    // Open file
-    let mut file = fs::File::open(args().nth(1).unwrap()).expect("Failed to open file");
+    let source = args().nth(1).unwrap();
 
-    // Print file size
-    println!("{}", file.metadata().unwrap().len());
+    let mut paths: Vec<PathBuf> = Vec::new();
+    if Path::new(&source).is_file() {
+        paths.push(PathBuf::from(source));
+    } else {
+        paths = dir::VisitDir::new(source)
+            .unwrap()
+            .filter_map(|e| Some(e.ok()?.path()))
+            .collect::<Vec<_>>();
+    }
 
-    // Read file
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)
-        .expect("Failed to read file");
+    for p in paths.iter() {
+        // Open file
+        let mut file = File::open(p).expect("Failed to open file");
 
-    // Gzip encode
-    let output = Vec::new();
-    let mut encoder = GzEncoder::new(output, Compression::default());
-    encoder
-        .write_all(contents.as_bytes())
-        .expect("Error: write_all(contents.as_bytes())");
-    let output = encoder.finish().unwrap();
-    println!("{:?}", output.len());
+        // Print file size
+        let original_size = file.metadata().unwrap().len();
+
+        // Read file
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)
+            .expect("Failed to read file");
+
+        // Gzip encode
+        let output = Vec::new();
+        let mut encoder = GzEncoder::new(output, Compression::default());
+        encoder
+            .write_all(contents.as_bytes())
+            .expect("Error: write_all(contents.as_bytes())");
+        let compressed_size = encoder.finish().unwrap().len();
+        println!("> {:?} {} {}", p, original_size, compressed_size);
+    }
 }
